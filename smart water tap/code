@@ -1,0 +1,66 @@
+#define trigger 5
+#define echo 4
+#define Relay 6
+
+float time = 0, distance = 0;
+int IRSensor = 2;
+int LED = 13;
+bool fill = true;
+
+void setup() {
+  Serial.begin(9600);
+  
+  pinMode(trigger, OUTPUT);
+  pinMode(echo, INPUT);
+  pinMode(Relay, OUTPUT);
+  pinMode(IRSensor, INPUT);
+  pinMode(LED, OUTPUT);
+
+  delay(20000);  // Initial delay for sensor stabilization
+}
+
+void loop() {
+  int statusSensor = digitalRead(IRSensor);
+
+  // If IR sensor detects an object
+  if (statusSensor == 1) {
+    fill = true;
+    Serial.println("Glass detected - Turning tap on");
+    digitalWrite(LED, LOW); // Assuming LED should be off when glass is detected
+    digitalWrite(Relay, HIGH); // Turn on the tap
+  }
+
+  // If IR sensor does not detect an object and the fill process was ongoing
+  if (statusSensor == 0 && fill == true) {
+    Serial.println("Glass removed or full - Turning tap off");
+    fill = false;
+    digitalWrite(LED, LOW); // Turn off LED
+    digitalWrite(Relay, LOW); // Turn off the tap
+    delay(20000); // Delay for any necessary processing
+  }
+
+  // Measure the distance to determine the fill level
+  measure_distance();
+
+  // If the glass is full (distance < 3 cm), turn off the tap
+  if (distance < 3) {
+    digitalWrite(Relay, LOW);
+  } else {
+    // Only turn on the tap if the glass is detected and not full
+    if (statusSensor == 1) {
+      digitalWrite(Relay, HIGH);
+    }
+  }
+
+  delay(500); // Delay to allow sensor to reset
+}
+
+void measure_distance() {
+  digitalWrite(trigger, LOW);
+  delayMicroseconds(10);
+  digitalWrite(trigger, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigger, LOW);
+  time = pulseIn(echo, HIGH);
+  distance = (time * 0.034) / 2; // Calculate distance in cm
+}
